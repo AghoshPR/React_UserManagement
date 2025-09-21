@@ -6,5 +6,7 @@ from .views import *
 
 urlpatterns = [
    
-    # path('',),
+    path('adminLogin/',AdminLoginView.as_view(),name='adminLogin'),
+    path('users/',ListUsers.as_view(),name='userList')
 ]
+
