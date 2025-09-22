@@ -3,7 +3,7 @@ from django.shortcuts import render,HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAuthenticated
 from .serializers import *
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
@@ -49,3 +49,20 @@ class LoginView(APIView):
         return Response({"error":"invalid Credentials"},status=status.HTTP_401_UNAUTHORIZED)
 
 
+class UserProfile(APIView):
+
+    permission_classes=[IsAuthenticated]
+
+    def get(self,request):
+
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
+    
+
+    def put(self,request):
+
+        serializer = UserProfileSerializer(request.user,data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)

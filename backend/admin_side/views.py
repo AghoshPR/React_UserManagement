@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny,IsAdminUser
 from rest_framework.response import Response
 from django.contrib.auth import authenticate,get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
+from user.serializers import RegisterSerializer
 from rest_framework import status
 # Create your views here.
 
@@ -46,6 +47,68 @@ class ListUsers(APIView):
         data = [ { "id":u.id, "username":u.username, "email":u.email } for u in users]
 
         return Response(data)
+
+    
+
+class DeleteUser(APIView):
+
+    permission_classes=[IsAdminUser]
+
+    def delete(self,request,id):
+
+        try:
+
+            user = User.objects.get(id=id)
+            user.delete()
+
+            return Response({"message":"User Deleted Successfully"})
+
+        except User.DoesNotExist:
+
+            return Response({"error":"user not found"},status=status.HTTP_404_NOT_FOUND)
+
+
+
+class EditUser(APIView):
+
+    permission_classes=[IsAdminUser]
+
+    def put(self,request,id):
+
+        try:
+            user=User.objects.get(id=id)
+
+            username=request.data.get("username",user.username)
+            email=request.request.data.get("email",user.email)
+
+            user.username=username
+            user.email=email
+
+            return Response({"message": "User updated successfully"})
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+
+class CreateUser(APIView):
+
+    permission_classes = [IsAdminUser]
+
+    def post(self,request):
+        
+        serializer = RegisterSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+       
 
 
 
