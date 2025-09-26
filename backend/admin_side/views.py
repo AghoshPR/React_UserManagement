@@ -41,10 +41,24 @@ class ListUsers(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self,request):
+        
+        search = request.query_params.get("search","")
 
         users = User.objects.all()
 
-        data = [ { "id":u.id, "username":u.username, "email":u.email } for u in users]
+        if search:
+            users = users.filter(username__icontains = search) | users.filter(email__icontains=search)
+
+        data = [ 
+            
+            { "id":u.id,
+            "username":u.username,
+            "email":u.email,
+            "is_staff":u.is_staff, 
+            "is_superuser":u.is_superuser
+            }
+             
+            for u in users]
 
         return Response(data)
 
@@ -79,10 +93,17 @@ class EditUser(APIView):
             user=User.objects.get(id=id)
 
             username=request.data.get("username",user.username)
-            email=request.request.data.get("email",user.email)
+            email=request.data.get("email",user.email)
+
+            if User.objects.filter(username=username).exclude(id=user.id).exists():
+                return Response({"username": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                return Response({"email": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             user.username=username
             user.email=email
+            user.save()
 
             return Response({"message": "User updated successfully"})
         except User.DoesNotExist:
