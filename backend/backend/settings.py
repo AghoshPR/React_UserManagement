@@ -1,11 +1,11 @@
 
 
 from pathlib import Path
-
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-2^0r&8h3_j5gmx@##*s%^3zqagu161lt)sf)&e54w81y7=qqdi'
+SECRET_KEY = config('SECRET_KEY')
 
 
 DEBUG = True
@@ -73,7 +73,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',   
         'NAME': 'usermanagement_react',         
         'USER': 'root',              
-        'PASSWORD': '12345',      
+        'PASSWORD': config('DB_PASSWORD'),      
         'HOST': '127.0.0.1',                    
         'PORT': '3306',                         
         'OPTIONS': {
