@@ -7,7 +7,7 @@ import { logoutAdmin } from '../Slices/adminAuthSlice'
 const AdminHomePage = () => {
     const [users, setUsers] = useState([])
     const [error, setError] = useState(null)
-
+    const [validationError, setValidationError] = useState("")
     const [showModal, setShowModal] = useState(false)
     const [newUser, setNewUser] = useState({
         username: "",
@@ -15,6 +15,14 @@ const AdminHomePage = () => {
         password: "",
         password2: "",
     })
+
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const [showEditModal,setShowEditModal] = useState(false)
+    const [editUser,setEditUser] = useState({id:null,username:"",email:""})
+
+    const [showDeleteModal,setShowDeleteModal] = useState(false)
+    const [deleteUserId,setDeleteUserId] = useState(null)
 
     const { token } = useSelector((state) => state.adminAuth)
     const dispatch = useDispatch()
@@ -37,6 +45,22 @@ const AdminHomePage = () => {
     }, [token, navigate])
 
     const handleCreate = async () => {
+
+        if (!newUser.username.trim() || !newUser.email.trim() || !newUser.password.trim() || !newUser.password2.trim()) {
+        setValidationError("All fields are required")
+        return
+        }
+
+         if (newUser.password !== newUser.password2) {
+        setValidationError("Passwords do not match")
+        return
+        }
+
+        setValidationError("")
+
+
+
+
         const token = localStorage.getItem('adminToken')
         try {
             await axios.post(
@@ -52,8 +76,12 @@ const AdminHomePage = () => {
             })
             setUsers(res.data)
         } catch (err) {
-            console.log("Failed to create user", err.response?.data || err)
-            alert("Error: " + JSON.stringify(err.response?.data))
+            if (err.response && err.response.data) {
+       
+                setValidationError(JSON.stringify(err.response.data))
+            } else {
+                setValidationError("Failed to create user")
+            }
         }
     }
 
@@ -63,33 +91,78 @@ const AdminHomePage = () => {
     }
 
     const handleDelete = async (id) => {
+
         const token = localStorage.getItem('adminToken')
-        try {
-            await axios.delete(`http://127.0.0.1:8000/api/myadmin/deleteUser/${id}/`, {
-                headers: { Authorization: `Bearer ${token}` }
+
+        try{
+            await axios.delete(`http://127.0.0.1:8000/api/myadmin/deleteUser/${id}/`,{
+                headers:{Authorization:`Bearer ${token}`}
             })
-            setUsers(users.filter(user => user.id !== id))
-        } catch (err) {
-            console.log("Failed to delete user", err)
+            setUsers(users.filter(user=>user.id != id))
+            setShowDeleteModal(false)
+        
+        }catch(err){
+            console.log("failed to delete user",err);
+            alert("failed to delete User")
+            
         }
+
+        
     }
 
-    const handleEdit = async (id) => {
-        const newName = prompt("Enter new username")
-        const newEmail = prompt("Enter the email")
+    const handleEdit = (user) => {
+        
+        setEditUser({id:user.id,username:user.username,email:user.email})
+        setShowEditModal(true)
 
-        if (!newName || !newEmail) return
+    }
+
+    const handleUpdate = async ()=>{
+
+        if(!editUser.username.trim() || !editUser.email.trim()){
+            setValidationError("all fileds are required!")
+            return
+        }
 
         const token = localStorage.getItem('adminToken')
-        try {
-            await axios.put(`http://127.0.0.1:8000/api/myadmin/editUser/${id}/`,
-                { username: newName, email: newEmail },
-                { headers: { Authorization: `Bearer ${token}` } }
+
+        try{
+            await axios.put(
+                `http://127.0.0.1:8000/api/myadmin/editUser/${editUser.id}/`,
+                {username:editUser.username,email:editUser.email},
+                {headers:{Authorization:`Bearer ${token}`}}
             )
-            setUsers(users.map(user =>
-                user.id === id ? { ...user, username: newName, email: newEmail } : user))
-        } catch (err) {
-            console.log("Failed to edit user", err)
+            setUsers(users.map(user=>
+                user.id === editUser.id ? {...user,username:editUser.username,email:editUser.email} : user
+            ))
+            setShowEditModal(false)
+            setValidationError("")
+        }catch(err){
+             if (err.response && err.response.data) {
+             setValidationError(JSON.stringify(err.response.data))
+            } else {
+                setValidationError("Failed to update user")
+            }
+            
+        }
+
+    }
+
+    const handleSearch = async (e)=>{
+
+        const query = e.target.value
+        setSearchTerm(query)
+
+        const token = localStorage.getItem('adminToken')
+
+        try{
+            const res = await axios.get(`http://127.0.0.1:8000/api/myadmin/users/?search=${query}`,{
+                headers:{Authorization:`Bearer ${token}`}
+            })
+            setUsers(res.data)
+        }
+        catch(err){
+            console.log(err);
         }
     }
 
@@ -225,12 +298,27 @@ const AdminHomePage = () => {
             <h1>User Management Dashboard</h1>
             {error && <p style={styles.errorText}>{error}</p>}
 
-            
+          <input
+                type="text"
+                placeholder="Search User"
+                value={searchTerm}
+                onChange={handleSearch}
+                style={{
+                padding: "10px 16px",
+                marginBottom:"20px",
+                borderRadius: "7px",
+                border: "1.5px solid #ddd",
+                fontSize: "1rem",
+                minWidth: "250px"
+                }}
+             />
+
             <table style={styles.table} aria-label="User list">
                 <thead>
                     <tr>
                         <th style={styles.th}>Name</th>
                         <th style={styles.th}>Email</th>
+                        <th style={styles.th}>Status</th>
                         <th style={styles.th}>Edit</th>
                         <th style={styles.th}>Delete</th>
                     </tr>
@@ -243,30 +331,40 @@ const AdminHomePage = () => {
                         >
                             <td style={styles.td}>{user.username}</td>
                             <td style={styles.td}>{user.email}</td>
+                            <td style={styles.td}>{user.is_superuser?"Admin":user.is_staff ? "Admin":"User"}</td>
+
                             <td style={styles.td}>
-                                <button
-                                    style={styles.button}
-                                    onClick={() => handleEdit(user.id)}
-                                    type="button"
-                                >
-                                    Edit
-                                </button>
+                                
+                                {!(user.is_superuser || user.is_staff) &&(
+                                    <button
+                                        style={styles.button}
+                                        onClick={() => handleEdit(user)}
+                                        type="button"
+                                    >
+                                        Edit
+                                    </button>
+                                ) }
+
                             </td>
                             <td style={styles.td}>
-                                <button
-                                    style={{ ...styles.button, ...styles.buttonSecondary }}
-                                    onClick={() => handleDelete(user.id)}
-                                    type="button"
-                                >
-                                    Delete
-                                </button>
+
+                                {!(user.is_superuser || user.is_staff) && (
+                                    <button
+                                        style={{ ...styles.button, ...styles.buttonSecondary }}
+                                        onClick={() => { setDeleteUserId(user.id); setShowDeleteModal(true); }}
+                                        type="button"
+                                    >
+                                        Delete
+                                    </button>
+                                )}
+                                
                             </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
 
-            
+            {/* for creating the user */}
             {showModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.modal} role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -318,9 +416,99 @@ const AdminHomePage = () => {
                             >
                                 Cancel
                             </button>
+
+                            {validationError && (
+                                <div style={{ color: "red", marginBottom: "10px", textAlign: "center" }}>
+                                    {validationError}
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* for user edit */}
+
+            {showEditModal && (
+
+                <div style={styles.modalOverlay}>
+                <div style={styles.modal} role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+                    <h2 id="editModalTitle" style={styles.modalHeading}>Edit User</h2>
+
+                        <input type="text"
+                                placeholder='Username'
+                                style={styles.modalInput}
+                                value={editUser.username}
+                                onChange={(e)=>setEditUser({...editUser,username:e.target.value})}
+                                required
+                        />
+
+                        <input type="email"
+                                placeholder='Email'
+                                style={styles.modalInput}
+                                value={editUser.email}
+                                onChange={(e)=>setEditUser({...editUser,email:e.target.value})}
+                        />
+                        
+                         <div style={styles.modalButtonGroup}>
+
+                            <button
+                                style={{ ...styles.button, width: "48%" }}
+                                onClick={handleUpdate}
+                                type="button"
+                            >
+                                Update
+                            </button>
+                            <button
+                                style={{ ...styles.button, ...styles.buttonSecondary, width: "48%" }}
+                                onClick={() => setShowEditModal(false)}
+                                type="button"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+
+                    
+                    
+                    {validationError && (
+                        <div style={styles.errorText}>{validationError}</div>
+                    )}
+                </div>
+            </div>
+
+            )}
+
+            {/* for confirm deleteUser */}
+
+
+            {showDeleteModal &&(
+
+                <div style={styles.modalOverlay}>
+        <div style={styles.modal}>
+            <h2 style={styles.modalHeading}>Confirm Delete</h2>
+            <p style={{ textAlign: "center", marginBottom: "20px" }}>Are you sure you want to delete this user?</p>
+            <div style={styles.modalButtonGroup}>
+                
+                <button style={{...styles.button,width:"48%"}}
+                        onClick={()=>handleDelete(deleteUserId)}
+                > 
+                Delete
+                    
+                </button>
+
+
+                <button style={{ ...styles.button, ...styles.buttonSecondary, width: "48%" }}
+                        onClick={()=>setShowDeleteModal(false)}
+                >
+                
+                Cancel
+
+                </button>
+                
+            </div>
+        </div>
+    </div>
             )}
 
         </div>

@@ -7,10 +7,18 @@ const Login = () => {
     const [form,setForm] = useState({uname:"",pass:""})
     const dispatch = useDispatch()
     const {user,token,loading,error} = useSelector((state)=>state.auth)
+    const [validationError, setValidationError] = useState("")
     const navigate=useNavigate()
 
     const handleSubmit =(e)=>{
         e.preventDefault()
+
+         if (!form.uname.trim() || !form.pass.trim()) {
+        setValidationError("Username and Password cannot be empty")
+        return
+        }
+        setValidationError("")
+
         dispatch(loginUser(form))
     }
 
@@ -116,7 +124,7 @@ const Login = () => {
 
                     <Link to={"/register"}>Register</Link>
                 </form>
-
+                {validationError && <p style={styles.error}>{validationError}</p>}
                 {error && <p style={styles.error}>{typeof error === "string" ? error : JSON.stringify(error)}</p>}
                 {token && <p style={styles.welcome}>Welcome {user?.username}!</p>}
             </div>

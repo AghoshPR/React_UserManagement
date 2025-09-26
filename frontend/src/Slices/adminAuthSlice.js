@@ -23,7 +23,7 @@ export const adminLogin = createAsyncThunk(
 )
 
 const adminAuthSlice = createSlice({
-    name:"amdinAuth",
+    name:"adminAuth",
     initialState:{
         admin:null,
         token:localStorage.getItem("adminToken")||null,

@@ -15,6 +15,9 @@ const AdminLogin = () => {
         try {
             const res = await axios.post("http://127.0.0.1:8000/api/myadmin/adminLogin/", form)
             localStorage.setItem('adminToken', res.data.access)
+            
+            
+            
             navigate('/adminHome')
         } catch (err) {
             setError(err.response?.data?.error || "Login failed")

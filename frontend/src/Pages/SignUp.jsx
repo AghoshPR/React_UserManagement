@@ -12,10 +12,47 @@ const SignUp = () => {
     })
     const dispatch = useDispatch()
     const { loading, error } = useSelector((state) => state.auth)
+     
+    const [validationError, setValidationError] = useState("")
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        dispatch(registerUser(form))
+
+        if (!form.username.trim()) {
+        setValidationError("Username is required")
+        return
+        }
+
+        if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+            setValidationError("Enter a valid email")
+            return
+        }
+
+        if (form.password.length < 6) {
+            setValidationError("Password must be at least 6 characters")
+            return
+        }
+
+        if (form.password !== form.password2) {
+            setValidationError("Passwords do not match")
+            return
+        }
+
+        try {
+            await dispatch(registerUser(form)).unwrap()
+
+            
+            setForm({ username: "", email: "", password: "", password2: "" })
+
+            
+            setValidationError("User registered successfully!")
+        } catch (err) {
+            console.log("Registration failed:", err)
+            setValidationError("Registration failed. " + (err?.message || ""))
+        }
+
+
+        // dispatch(registerUser(form))
     }
 
     const styles = {
@@ -122,6 +159,7 @@ const SignUp = () => {
                     </button>
                     <Link to={"/login"}>Login</Link>
                 </form>
+                {validationError && <p style={styles.error}>{validationError}</p>}
                 {error && <p style={styles.error}>{typeof error === "string" ? error : JSON.stringify(error)}</p>}
             </div>
         </div>

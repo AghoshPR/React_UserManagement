@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { logout } from '../Slices/authSlice'
 
 const HomePage = () => {
-    const { user } = useSelector((state) => state.auth)
+    const { user } = useSelector((state) => state.auth?.user)
     const dispatch = useDispatch()
     const navigate = useNavigate()
 

@@ -6,6 +6,8 @@ const Profile = () => {
     const {token} = useSelector((state => state.auth))
     const [profile, setProfile] = useState(null)
     const [file, setFile] = useState(null)
+    const [validationError, setValidationError] = useState("")
+
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -22,6 +24,36 @@ const Profile = () => {
     }, [token])
 
     const handleUpdate = async () => {
+
+        
+
+        
+        if (!profile.username.trim() || !profile.email.trim() || !profile.phone.trim()) {
+        setValidationError("All fields are required")
+        return
+        }
+
+        if (profile.phone.trim().length < 10 || profile.phone.trim().length > 15) {
+        setValidationError("Phone must be 10-15 digits")
+        return
+        }
+
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                setValidationError("File size must be less than 2MB")
+                return
+            }
+            if (!(file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/jpg")) {
+                setValidationError("Only JPG/PNG images are allowed")
+                return
+            }
+        }
+
+
+        setValidationError("")
+
+
+
         const formData = new FormData()
         formData.append("username", profile.username)
         formData.append("email", profile.email)
@@ -178,6 +210,12 @@ const Profile = () => {
                     <button style={styles.button} onClick={handleUpdate}>
                         Update Profile
                     </button>
+
+                        {validationError && (
+                                <div style={{ color: "red", marginBottom: "10px" }}>
+                                    {validationError}
+                                </div>
+                            )}
                 </div>
             </div>
         </div>
